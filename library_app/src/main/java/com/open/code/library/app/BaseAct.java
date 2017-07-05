@@ -4,26 +4,17 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
-import android.support.annotation.ColorRes;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 
-import com.duoku.kklib.controller.FragmentController;
-import com.duoku.kklib.permission.OnPermissionCallBack;
-import com.duoku.kklib.permission.PermissionUtil;
-import com.duoku.kklib.utils.StatusBarUtil;
-import com.duoku.kklib.widget.SwipeCloseLayout;
+import com.open.code.library.widget.SwipeCloseLayout;
 
 /**
  * Created by zhaokai on 2016-05-10
@@ -53,14 +44,12 @@ public abstract class BaseAct extends AppCompatActivity {
     /**
      * 权限请求工具
      */
-    private PermissionUtil.PermissionObject mPermissionUtil;
     private boolean mSwipeBackEnable = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         LocalBroadcastManager.getInstance(this).registerReceiver(closeReceiver, closeFilter);
-        mSwipeBack = new SwipeCloseLayout(this);//侧滑控件
         //动画样式
 //        getWindow().setWindowAnimations(R.style.activityAnim);
     }
@@ -68,11 +57,11 @@ public abstract class BaseAct extends AppCompatActivity {
     @Override
     protected final void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        mSwipeBack.injectWindow();
+        mSwipeBack = SwipeCloseLayout.create(this, null);//侧滑控件
+        mSwipeBack.setSwipeEnabled(mSwipeBackEnable);
         if (getStateContentView() != 0) {
             addStateView();
         }
-        mSwipeBack.setSwipeEnabled(mSwipeBackEnable);
         onPostCreated(savedInstanceState);   //初始化视图组件
     }
 
@@ -83,12 +72,6 @@ public abstract class BaseAct extends AppCompatActivity {
      * @return 资源ID
      */
     protected abstract int getLayoutResID();
-
-    /**
-     * 试图创建完成时调用
-     * 参数预留（savedInstanceState）
-     */
-    protected abstract void onPostCreated(Bundle savedInstanceState);
 
     /**
      * 返回状态页容器 为0则不加状态页
@@ -104,6 +87,14 @@ public abstract class BaseAct extends AppCompatActivity {
      * 参数预留（savedInstanceState）
      */
     protected abstract void onCreated(Bundle savedInstanceState);
+
+    /**
+     * 试图创建完成时调用
+     * 参数预留（savedInstanceState）
+     */
+    protected void onPostCreated(Bundle savedInstanceState) {
+
+    }
 
     @Override
     protected void onDestroy() {
@@ -130,6 +121,15 @@ public abstract class BaseAct extends AppCompatActivity {
         mSwipeBackEnable = enable;
         if (mSwipeBack != null) {
             mSwipeBack.setSwipeEnabled(mSwipeBackEnable);
+        }
+    }
+
+    /**
+     * 增加特殊View 防止滑动冲突
+     */
+    public void addSwipeSpecialView(View view) {
+        if (mSwipeBack != null) {
+            mSwipeBack.addSpecialView(view);
         }
     }
 
@@ -230,28 +230,6 @@ public abstract class BaseAct extends AppCompatActivity {
         return null;
     }
 
-    /**
-     * 提供公开方法设置 状态栏颜色
-     *
-     * @param color 状态栏颜色
-     */
-    public void setStatus(@ColorRes int color) {
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Window window = getWindow();
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
-                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(Color.TRANSPARENT);
-            window.setNavigationBarColor(Color.TRANSPARENT);
-        } else {
-            StatusBarUtil.setTransparent(this);
-        }
-    }
-
 
     /**
      * 替换Fragment
@@ -262,7 +240,7 @@ public abstract class BaseAct extends AppCompatActivity {
      */
     public void replaceFragment(BaseFra fragment, int layoutRes, boolean isNeedRefresh, boolean hasAnim) {
         if (fragment == null) return;
-        FragmentController.replaceFragment(this, layoutRes, fragment, hasAnim);
+        replaceFragment(this, layoutRes, fragment);
         if (isNeedRefresh) {
             fragment.refresh();
         }
@@ -279,60 +257,59 @@ public abstract class BaseAct extends AppCompatActivity {
      * @return 最终显示的Fragment
      */
     public BaseFra changeFragment(BaseFra current, BaseFra target, int layoutRes, boolean isNeedRefresh, boolean canBack) {
-        FragmentController.changeFragment(this, current, target, layoutRes, canBack, true);
+        changeFragment(this, current, target, layoutRes, canBack);
         if (isNeedRefresh)
             target.refresh();
         return target;
     }
 
-    /**
-     * 请求权限
-     *
-     * @param requestCode 权限请求码
-     * @param callBack    处理结果
-     * @param permission  请求的权限
-     */
-    public void getPermission(int requestCode, OnPermissionCallBack callBack, String... permission) {
-        if (mPermissionUtil == null) {
-            mPermissionUtil = PermissionUtil.with(this);
-        }
-        mPermissionUtil.createRequest(requestCode, callBack, permission).request(requestCode);
-    }
-
-    /**
-     * 检测是否已有权限
-     *
-     * @param permission 权限名称
-     * @return 是否权限是否
-     */
-    public boolean checkPermission(@NonNull String permission) {
-        if (mPermissionUtil == null) {
-            mPermissionUtil = PermissionUtil.with(this);
-        }
-        return mPermissionUtil.check(permission)[0];
-    }
-
-    /**
-     * 检测是否已有权限
-     *
-     * @param permissions 权限名称
-     * @return 是否权限是否允许的数组
-     */
-    public boolean[] checkPermission(@NonNull String... permissions) {
-        if (mPermissionUtil == null) {
-            mPermissionUtil = PermissionUtil.with(this);
-        }
-        return mPermissionUtil.check(permissions);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (mPermissionUtil != null) {
-            mPermissionUtil.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
     //**********************************私有方法*********************************/
+
+
+    /**
+     * 替换Fragment
+     *
+     * @param activity baseAct
+     * @param fragment baseFra
+     */
+    private void replaceFragment(AppCompatActivity activity, int layoutRes, BaseFra fragment) {
+        if (activity == null || layoutRes == 0 || fragment == null) {
+            return;
+        }
+        FragmentTransaction transaction = activity.getSupportFragmentManager().beginTransaction();
+        transaction.replace(layoutRes, fragment, fragment.getClass().getName());
+        transaction.commitAllowingStateLoss();
+    }
+
+    /**
+     * 切换Fragment
+     *
+     * @param current   当前显示的Fragment
+     * @param target    需要显示的Fragment
+     * @param layoutRes 位置
+     * @param canBack   是否支持回退
+     * @return 最终显示的Fragment
+     */
+    private BaseFra changeFragment(AppCompatActivity act, BaseFra current, BaseFra target, int layoutRes, boolean canBack) {
+
+        FragmentTransaction ta = act.getSupportFragmentManager().beginTransaction();
+
+        if (current != null) {
+            ta.hide(current);
+        }
+        if (target.isAdded()) {
+            ta.show(target);
+        } else {
+            ta.add(layoutRes, target, target.getClass().getName());
+        }
+
+        if (canBack) {
+            ta.addToBackStack(null);
+        }
+        ta.commitAllowingStateLoss();
+
+        return target;
+    }
 
     /**
      * 添加状态页
@@ -398,11 +375,6 @@ public abstract class BaseAct extends AppCompatActivity {
     // 修改时间：2017/5/2 下午1:40 修改人：zhaokai
     // 描述：隐藏以下方法
     //============================
-//    @Override
-//    public void onCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
-//        super.onCreate(savedInstanceState, persistentState);
-//    }
-
     @Override
     public final View onCreateView(String name, Context context, AttributeSet attrs) {
         return super.onCreateView(name, context, attrs);
@@ -413,8 +385,4 @@ public abstract class BaseAct extends AppCompatActivity {
         return super.onCreateView(parent, name, context, attrs);
     }
 
-//    @Override
-//    public final void onPostCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
-//        super.onPostCreate(savedInstanceState, persistentState);
-//    }
 }

@@ -2,14 +2,15 @@ package com.open.code.sideslipdemo;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.view.ViewPager;
 import android.view.View;
 
-public class MainActivity extends BaseActivity {
+public class TestActivity extends BaseActivity {
 
 
     @Override
     protected int getLayoutResID() {
-        return R.layout.activity_main;
+        return R.layout.activity_test;
     }
 
     @Override
@@ -23,14 +24,14 @@ public class MainActivity extends BaseActivity {
         findViewById(R.id.root).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Util.toast(getApplicationContext(), "点击Activity_Main");
+                Util.toast(getApplicationContext(), "点击Activity_Test");
             }
         });
         findViewById(R.id.bt1).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Util.toast(getApplicationContext(), "增加 Activity");
-                startActivity(new Intent(MainActivity.this, TestActivity.class));
+                startActivity(new Intent(TestActivity.this, TestActivity.class));
             }
         });
         findViewById(R.id.bt2).setOnClickListener(new View.OnClickListener() {
@@ -40,16 +41,14 @@ public class MainActivity extends BaseActivity {
                 changeFragment(null, TestFragment.newInstance(), R.id.container, false, true);
             }
         });
+
+        ViewPager vp = ((ViewPager) findViewById(R.id.view_pager));
+        vp.setAdapter(new PageFragmentAdapter(getSupportFragmentManager()));
     }
 
     @Override
     protected void onPostCreated(Bundle savedInstanceState) {
         super.onPostCreated(savedInstanceState);
-        setSwipeBackEnable(false);
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
+        setSwipeBackEnable(true);
     }
 }

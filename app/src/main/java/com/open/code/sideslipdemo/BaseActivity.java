@@ -1,6 +1,8 @@
 package com.open.code.sideslipdemo;
 
-import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+
+import com.open.code.library.app.BaseAct;
 
 /**
  * ========================================
@@ -10,5 +12,12 @@ import android.support.v7.app.AppCompatActivity;
  * ========================================
  */
 
-public class BaseActivity extends AppCompatActivity {
+public abstract class BaseActivity extends BaseAct {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(getLayoutResID());
+        onCreated(savedInstanceState);
+    }
 }

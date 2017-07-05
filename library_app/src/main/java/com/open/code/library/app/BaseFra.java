@@ -8,8 +8,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
-import com.duoku.kklib.widget.SwipeCloseLayout;
+import com.open.code.library.widget.SwipeCloseLayout;
 
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -90,14 +91,10 @@ public abstract class BaseFra extends Fragment {
         if (mainView == null) {
             throw new IllegalArgumentException("mainView Can not be null");
         }
-        mSwipeClose = new SwipeCloseLayout(getActivity(), this);
-        mSwipeClose.injectWindow();
-        return mSwipeClose;
+        return mainView;
     }
 
-    public View onCreateView(ViewGroup container, Bundle savedInstanceState) {
-        return null;
-    }
+    public abstract View onCreateView(ViewGroup container, Bundle savedInstanceState);
 
     /**
      * 是否开启侧滑关闭
@@ -108,7 +105,24 @@ public abstract class BaseFra extends Fragment {
     public void setSwipeBackEnable(boolean enable) {
         if (mSwipeClose != null) {
             mSwipeClose.setSwipeEnabled(enable);
+            mSwipeClose.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Toast.makeText(getActivity(), "点击Fragment返回控件", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
+    }
+
+    /**
+     * Called when the fragment's activity has been created and this
+     * fragment's view hierarchy instantiated.
+     */
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        mSwipeClose = SwipeCloseLayout.create(getActivity(), this);//侧滑控件
+        mSwipeClose.setSwipeEnabled(true);
     }
 
     /**
@@ -121,15 +135,6 @@ public abstract class BaseFra extends Fragment {
         if (getActivity() instanceof BaseAct)
             ((BaseAct) getActivity()).addSwipeSpecialView(view);
     }
-
-//    /**
-//     * 指定状态页到前端
-//     */
-//    public void bringStateToFront(String state) {
-//        if (stateView.get(state) != null) {
-//            stateView.get(state).bringToFront();
-//        }
-//    }
 
     /**
      * 状态页  建议静态页面
