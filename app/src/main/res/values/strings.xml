@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">"SideSlipDemo"</string>
+    <string name="activity">Add Activity</string>
+    <string name="fragment">Add Fragment</string>
+</resources>

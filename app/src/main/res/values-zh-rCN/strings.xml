@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">"侧滑返回"</string>
+    <string name="activity">添加一个Activity</string>
+    <string name="fragment">添加一个Fragment</string>
+</resources>
