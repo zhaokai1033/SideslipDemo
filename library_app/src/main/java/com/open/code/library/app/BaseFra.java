@@ -8,9 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.Toast;
-
-import com.open.code.library.widget.SwipeCloseLayout;
 
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -20,12 +17,13 @@ import java.util.Map;
  * Describe：
  * Created by zhaokai on 2017/3/6.
  * Email zhaokai1033@126.com
+ * 带状态页的Fragment
  * ================================================
  */
 
 @SuppressWarnings("unused")
 public abstract class BaseFra extends Fragment {
-
+    private static final String TAG = "BaseFra";
     private View[] mStateViews = new View[3];//状态页容器
     private View mStateView;//状态页
     private StatePage stateNeed = null;//初始化需要显示状态页
@@ -33,7 +31,6 @@ public abstract class BaseFra extends Fragment {
     //    private HashMap<String, View> stateView = new HashMap<>();
     protected LayoutInflater inflater;
     public static final String NORMAL = "normal";
-    private SwipeCloseLayout mSwipeClose;
 
     public final View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         this.inflater = inflater == null ? LayoutInflater.from(getContext()) : inflater;
@@ -91,28 +88,13 @@ public abstract class BaseFra extends Fragment {
         if (mainView == null) {
             throw new IllegalArgumentException("mainView Can not be null");
         }
+//        方式 ①: 有状态页在此处接入
+//        return SwipeCloseLayout.createFromFragment(mainView, this, null);//侧滑控件
         return mainView;
     }
 
     public abstract View onCreateView(ViewGroup container, Bundle savedInstanceState);
 
-    /**
-     * 是否开启侧滑关闭
-     *
-     * @param enable true/false
-     */
-//    @Override
-    public void setSwipeBackEnable(boolean enable) {
-        if (mSwipeClose != null) {
-            mSwipeClose.setSwipeEnabled(enable);
-            mSwipeClose.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Toast.makeText(getActivity(), "点击Fragment返回控件", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-    }
 
     /**
      * Called when the fragment's activity has been created and this
@@ -121,19 +103,6 @@ public abstract class BaseFra extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mSwipeClose = SwipeCloseLayout.create(getActivity(), this);//侧滑控件
-        mSwipeClose.setSwipeEnabled(true);
-    }
-
-    /**
-     * 增加特殊View 防止滑动冲突
-     */
-    public void addSwipeSpecialView(View view) {
-        if (mSwipeClose != null) {
-            mSwipeClose.addSpecialView(view);
-        }
-        if (getActivity() instanceof BaseAct)
-            ((BaseAct) getActivity()).addSwipeSpecialView(view);
     }
 
     /**
@@ -173,14 +142,6 @@ public abstract class BaseFra extends Fragment {
      */
     protected abstract int getLayoutRes();
 
-    /**
-     * 页面被创建完成时调用   可用于对页面的初始化操作
-     *
-     * @param view               根视图
-     * @param savedInstanceState 保存状态
-     */
-    @Override
-    public abstract void onViewCreated(View view, @Nullable Bundle savedInstanceState);
 
     /**
      * 外部刷新整个页面

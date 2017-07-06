@@ -15,15 +15,15 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 
-import java.util.ArrayList;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 
 /**
@@ -32,8 +32,12 @@ import java.util.HashMap;
  * Email zhaokai1033@126.com
  * Describe :
  * 侧滑关闭的布局，使用方式
- * 在目标容器的onCreate里面创建本布局 {@link #SwipeCloseLayout(Context)}
- * 在目标容器的onPostCreate里面将本布局挂载到decorView下{@link #injectWindow()}
+ * 1、Fragment
+ * 在{@link Fragment#onCreateView(LayoutInflater, ViewGroup, Bundle)}调用
+ * 并 return {@link #SwipeCloseLayout#createFromFragment(View, Fragment)}
+ * 2、Activity
+ * 在{@link Activity#onPostCreate(Bundle)}
+ * 调用{@link #SwipeCloseLayout#createFromActivity(Activity)}
  * ================================================
  */
 public class SwipeCloseLayout extends FrameLayout {
@@ -64,6 +68,7 @@ public class SwipeCloseLayout extends FrameLayout {
     private boolean mIsInjected;
 
     private HashMap<Integer, View> specialView = new HashMap<>();
+    private SwipeFinishCallBack finishCallBack;
 
     public SwipeCloseLayout(Context context) {
         this(context, null, 0);
@@ -93,24 +98,28 @@ public class SwipeCloseLayout extends FrameLayout {
         return new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, colors);
     }
 
-    public static SwipeCloseLayout create(Activity activity, Fragment fragment) {
+    public static SwipeCloseLayout createFromActivity(Activity activity, SwipeFinishCallBack callBak) {
         SwipeCloseLayout swipeCloseLayout = new SwipeCloseLayout(activity, null, 0);
-        swipeCloseLayout.mFragment = fragment;
-        swipeCloseLayout.injectWindow();
+        swipeCloseLayout.injectWindowForActivity();
+        swipeCloseLayout.finishCallBack = callBak;
         return swipeCloseLayout;
     }
 
-    public static SwipeCloseLayout createFromActivity(Activity activity, Fragment fragment) {
-        SwipeCloseLayout swipeCloseLayout = new SwipeCloseLayout(activity, null, 0);
-        swipeCloseLayout.mFragment = fragment;
-        swipeCloseLayout.injectWindow();
-        return swipeCloseLayout;
+    private void injectWindowForActivity() {
+        if (mIsInjected) return;
+        final ViewGroup root = (ViewGroup) mActivity.getWindow().getDecorView();
+        mContent = root.getChildAt(0);
+        root.removeView(mContent);
+        this.addView(mContent, new ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        root.addView(this);
+        mIsInjected = true;
     }
 
-    public static SwipeCloseLayout createFromFragment(View mainView, Fragment fragment) {
+    public static SwipeCloseLayout createFromFragment(View mainView, Fragment fragment, SwipeFinishCallBack callBak) {
         SwipeCloseLayout swipeCloseLayout = new SwipeCloseLayout(fragment.getContext(), null, 0);
         swipeCloseLayout.mFragment = fragment;
-        swipeCloseLayout.injectWindow();
+        swipeCloseLayout.finishCallBack = callBak;
+        swipeCloseLayout.injectWindowForFragment(mainView);
         return swipeCloseLayout;
     }
 
@@ -118,33 +127,25 @@ public class SwipeCloseLayout extends FrameLayout {
      * 将本view注入到decorView的子view上
      * 在{@link Activity#onPostCreate(Bundle)}里使用本方法注入
      */
-    private void injectWindow() {
+    private void injectWindowForFragment(View view) {
         if (mIsInjected)
             return;
-        if (mFragment != null) {
-            mContent = mFragment.getView();
-            if (mContent == null) {
-                throw new IllegalArgumentException("The fragment's root view is null");
-            } else {
-                ViewGroup viewGroup = ((ViewGroup) mContent.getParent());
-                if (viewGroup != null) {
-                    viewGroup.removeView(mContent);
-                    addView(mContent);
-                    viewGroup.addView(this);
-                } else {
-                    throw new IllegalArgumentException("The fragment's parent is null");
-                }
-            }
-        } else {
-            final ViewGroup root = (ViewGroup) mActivity.getWindow().getDecorView();
-            mContent = root.getChildAt(0);
-            root.removeView(mContent);
-            this.addView(mContent, new ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-            root.addView(this);
+        if (mFragment == null || view == null) {
+            throw new IllegalArgumentException("The fragment or view is null");
         }
-        mIsInjected = true;
+        mContent = view;
+        ViewGroup viewGroup = ((ViewGroup) mContent.getParent());
+        if (viewGroup != null) {
+            viewGroup.removeView(mContent);
+            viewGroup.addView(this, mContent.getLayoutParams());
+            try {
+                changeFieldValue(mFragment, "mView", this);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        addView(mContent);
     }
-
 
     public boolean isSwipeEnabled() {
         return mSwipeEnabled;
@@ -325,7 +326,9 @@ public class SwipeCloseLayout extends FrameLayout {
             @Override
             public void onAnimationEnd(Animator animation) {
                 mIsAnimationFinished = true;
-                backImp();
+                if (finishCallBack == null || !finishCallBack.onSwipeFinish(mActivity, mFragment)) {
+                    backImp();
+                }
             }
 
             @Override
@@ -342,8 +345,6 @@ public class SwipeCloseLayout extends FrameLayout {
     public void backImp() {
         if (mFragment != null) {
             if (mActivity.getSupportFragmentManager().popBackStackImmediate()) {
-                if (getParent() != null)
-                    ((ViewGroup) getParent()).removeView(this);
             } else if (!mActivity.isFinishing()) {
                 mActivity.finish();
                 mActivity.overridePendingTransition(0, 0);//取消默认关闭动画
@@ -372,12 +373,6 @@ public class SwipeCloseLayout extends FrameLayout {
         }
     }
 
-    public void finish() {
-        if (!isAnimationFinished()) {
-            cancelPotentialAnimation();
-        }
-    }
-
     /**
      * 添加特殊view 防止错划
      */
@@ -395,87 +390,132 @@ public class SwipeCloseLayout extends FrameLayout {
         }
     }
 
-    private boolean isTouchOnSpecialView(MotionEvent ev) {
+    public boolean isTouchOnSpecialView(MotionEvent ev) {
         if (MotionEvent.ACTION_DOWN == ev.getAction()) {
-            View scrollTouchTarget = getScrollTouchTarget(this, ((int) ev.getRawX()), ((int) ev.getRawY()));
+            View scrollTouchTarget = getScrollTouchTarget(this, ev);
             if (scrollTouchTarget != null) {
                 return true;
             }
         }
-//        for (Map.Entry<Integer, View> entry : specialView.entrySet()) {
-//            if (inRangeOfView(entry.getValue(), ev)) {
-//                return true;
-//            }
-//        }
         return false;
     }
 
     //TODO
     @Override
     public boolean canScrollHorizontally(int direction) {
-        return super.canScrollHorizontally(direction);
+        return mCanSwipe || super.canScrollHorizontally(direction);
     }
 
-    private boolean inRangeOfView(View view, MotionEvent ev) {
-        int[] location = new int[2];
-        view.getLocationOnScreen(location);
-        int x = location[0];
-        int y = location[1];
-        return !(ev.getRawX() < x || ev.getRawX() > (x + view.getWidth()) || ev.getRawY() < y || ev.getRawY() > (y + view.getHeight()));
-    }
+    private View targetView;
 
     /**
      * 获取可以向 左侧滑的控件
      *
      * @param view 当前容器
-     * @param x    落点 X轴
-     * @param y    落点 Y轴
-     * @return 可以向左侧滑的控件
+     * @param ev   当前事件
      */
-    private View getScrollTouchTarget(View view, int x, int y) {
-        View target = null;
-        ArrayList<View> TouchableViews = view.getTouchables();
-        for (View child : TouchableViews) {
+    public View getScrollTouchTarget(SwipeCloseLayout view, MotionEvent ev) {
+        //当前点击位置与上次相同 则直接进入判断 适用于多个SwipeCloseLayout嵌套时，加速判断
+        if (targetView != null && isTouchPointInView(targetView, ((int) ev.getRawX()), ((int) ev.getRawY()))) {
 
-            if (target != null) {
-                break;
+            if (targetView instanceof SwipeCloseLayout) {
+                //第一种情况 触摸到 子SwipeCloseLayout 可滑动的子View，则原样返回，不在查找
+                if (((SwipeCloseLayout) targetView).isTouchOnSpecialView(ev)) {
+                    return targetView;
+                }
+                //否则未触摸到，没有可侧滑返回的控件，需要判断 targetView 是否可以滑动返回
             }
-            //判断当前可触摸的控件是否在点击范围内
-            //当前控件是否可以向右侧滑
-            if (child.canScrollHorizontally(-1) && isTouchPointInView(child, x, y)) {
-                target = child;
-                break;
-            } else {
-                //检查父控件是否可以滑动
-                //父控件不为空且父控件不等于view
-                while (child.getParent() != null) {
-                    ViewParent viewParent = child.getParent();
-                    if (viewParent instanceof View) {
-                        child = ((View) viewParent);
-                        if (child.canScrollHorizontally(-1) && isTouchPointInView(child, x, y)) {
-                            target = child;
-                            break;
-                        }
-                    } else {
-                        break;
+            //判断当前 targetView 是否可以滑动返回
+            if (isScrollView(targetView) != null)
+                return targetView;
+        }
+        // 继续查找对应位置 可滑动的View
+        targetView = getChildViewWithLocation(view, ev);
+        return targetView;
+    }
+
+    /**
+     * 根据落点坐标获取可滑动的子View 不包含自己
+     *
+     * @param view 父容器
+     * @param ev   当前触摸事件
+     */
+    private View getChildViewWithLocation(@NonNull ViewGroup view, MotionEvent ev) {
+        View target = null;
+        for (int i = 0; i < view.getChildCount(); i++) {
+            View child = view.getChildAt(i);
+            if (isTouchPointInView(child, ((int) ev.getRawX()), ((int) ev.getRawY()))) {
+                if (child instanceof SwipeCloseLayout) {
+                    // 内部SwipeCloseLayout 可滑动
+                    boolean flag = ((SwipeCloseLayout) child).isTouchOnSpecialView(ev);
+//                    target = ((SwipeCloseLayout) child).getScrollTouchTarget((SwipeCloseLayout) child, ev);
+                    target = flag ? null : child;
+                }
+                if (target == null && null == (target = isScrollView(child))) {
+                    if (child instanceof ViewGroup) {
+                        target = getChildViewWithLocation(((ViewGroup) child), ev);
                     }
                 }
             }
+            if (target != null) {
+                return target;
+            }
         }
-        return target;
+        return null;
     }
 
+    /**
+     * 是否是可以滑动的view
+     *
+     * @param child 要判断的View
+     */
+    private View isScrollView(View child) {
+        if (child.canScrollHorizontally(-1)) {
+            return child;
+        }
+        return null;
+    }
+
+    /**
+     * 落点是否在View 上
+     */
     private boolean isTouchPointInView(View view, int x, int y) {
         int[] location = new int[2];
+        if (VISIBLE != view.getVisibility()) {
+            return false;
+        }
         view.getLocationOnScreen(location);
         int left = location[0];
         int top = location[1];
         int right = left + view.getMeasuredWidth();
         int bottom = top + view.getMeasuredHeight();
-        if (y >= top && y <= bottom
-                && x >= left && x <= right) {
-            return true;
+        return y >= top && y <= bottom
+                && x >= left && x <= right;
+    }
+
+    /**
+     * 关闭回调
+     */
+    public interface SwipeFinishCallBack {
+        boolean onSwipeFinish(Activity activity, Fragment fragment);
+    }
+
+    /**
+     * 对给定对象obj的propertyName指定的成员变量进行赋值
+     * 赋值为value所指定的值
+     * <p>
+     * 该方法可以访问私有成员
+     */
+    public static void changeFieldValue(Object obj, String propertyName, Object value) throws Exception {
+        if (!(obj instanceof Fragment)) {
+            throw new IllegalArgumentException("you should extends Fragment");
         }
-        return false;
+        Class<?> clazz = Fragment.class;
+        Field field = clazz.getDeclaredField(propertyName);
+        //赋值前将该成员变量的访问权限打开
+        field.setAccessible(true);
+        field.set(obj, value);
+        //赋值后将该成员变量的访问权限关闭
+        field.setAccessible(false);
     }
 }

@@ -1,5 +1,6 @@
 package com.open.code.library.app;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -7,6 +8,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
@@ -24,7 +26,7 @@ import com.open.code.library.widget.SwipeCloseLayout;
  * 增加公共状态页
  */
 @SuppressWarnings("unused")
-public abstract class BaseAct extends AppCompatActivity {
+public abstract class BaseAct extends AppCompatActivity implements SwipeCloseLayout.SwipeFinishCallBack {
 
     private View[] mStateViews = new View[3];//状态页容器
     private View mStateView;//状态页
@@ -57,7 +59,7 @@ public abstract class BaseAct extends AppCompatActivity {
     @Override
     protected final void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        mSwipeBack = SwipeCloseLayout.create(this, null);//侧滑控件
+        mSwipeBack = SwipeCloseLayout.createFromActivity(this, this);//侧滑控件
         mSwipeBack.setSwipeEnabled(mSwipeBackEnable);
         if (getStateContentView() != 0) {
             addStateView();
@@ -385,4 +387,8 @@ public abstract class BaseAct extends AppCompatActivity {
         return super.onCreateView(parent, name, context, attrs);
     }
 
+    @Override
+    public boolean onSwipeFinish(Activity activity, Fragment fragment) {
+        return false;
+    }
 }

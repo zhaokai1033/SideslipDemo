@@ -1,7 +1,7 @@
 package com.open.code.sideslipdemo;
 
-import android.graphics.Color;
 import android.support.v4.view.PagerAdapter;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -35,8 +35,11 @@ public class PagerViewAdapter extends PagerAdapter {
         TextView textView = new TextView(container.getContext());
         textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        textView.setText("position:" + position);
-        textView.setBackgroundColor(Color.BLUE);
+        textView.setText("Pager_" + position);
+        textView.setGravity(Gravity.CENTER);
+        textView.setTextSize(56);
+        textView.setBackgroundColor(Util.randomColor());
+        textView.setClickable(true);
         container.addView(textView);
         return textView;
     }

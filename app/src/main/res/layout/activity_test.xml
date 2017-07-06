@@ -18,6 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:background="@color/colorAccent"
+            android:gravity="center_vertical"
             android:text="@string/activity" />
 
         <android.support.v7.widget.AppCompatButton
@@ -26,6 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:background="@color/colorAccent"
+            android:gravity="center_vertical"
             android:text="@string/fragment" />
 
         <android.support.v4.view.ViewPager
@@ -40,7 +42,5 @@
     <FrameLayout
         android:id="@+id/container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-    </FrameLayout>
+        android:layout_height="match_parent" />
 </RelativeLayout>
