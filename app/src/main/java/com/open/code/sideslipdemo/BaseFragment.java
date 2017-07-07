@@ -23,7 +23,7 @@ public abstract class BaseFragment extends BaseFra {
     private static final String TAG = "BaseFragment";
     private SwipeCloseLayout mSwipeClose;
 
-    private boolean mCanSwipeClose;//是否可以侧滑关闭
+    private boolean mCanSwipeClose = true;//是否可以侧滑关闭
 
     public SwipeCloseLayout getSwipeClose() {
         return mSwipeClose;
@@ -33,7 +33,7 @@ public abstract class BaseFragment extends BaseFra {
     public final View onCreateView(ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(getLayoutRes(), container, false);
 //        方式 ①: 在此处接入 此处在添加状态页需注意
-        view = mSwipeClose = SwipeCloseLayout.createFromFragment(view, this, null);//侧滑控件
+//        view = mSwipeClose = SwipeCloseLayout.createFromFragment(view, this, null);//侧滑控件
         return view;
     }
 
@@ -46,7 +46,7 @@ public abstract class BaseFragment extends BaseFra {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
 //        方式②
-//        mSwipeClose = SwipeCloseLayout.createFromFragment(view, this, null);//侧滑控件
+        mSwipeClose = SwipeCloseLayout.createFromFragment(view, this, null);//侧滑控件
     }
 
     /**
@@ -80,6 +80,6 @@ public abstract class BaseFragment extends BaseFra {
     public void onResume() {
         super.onResume();
 //        设置初始值
-        setSwipeBackEnable(true);
+        setSwipeBackEnable(mCanSwipeClose);
     }
 }
