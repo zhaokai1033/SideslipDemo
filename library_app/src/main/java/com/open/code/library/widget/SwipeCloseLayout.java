@@ -24,7 +24,6 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
 
 /**
  * ================================================
@@ -67,7 +66,6 @@ public class SwipeCloseLayout extends FrameLayout {
     private int mPullMaxLength;
     private boolean mIsInjected;
 
-    private HashMap<Integer, View> specialView = new HashMap<>();
     private SwipeFinishCallBack finishCallBack;
 
     public SwipeCloseLayout(Context context) {
@@ -82,7 +80,7 @@ public class SwipeCloseLayout extends FrameLayout {
         super(context, attrs, defStyleAttr);
         mActivity = (AppCompatActivity) context;
         mActivity.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        mActivity.getWindow().getDecorView().setBackgroundDrawable(null);
+        mActivity.getWindow().getDecorView().setBackgroundColor(Color.TRANSPARENT);
         mShadow = getShadowDrawable();
         DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
         touchSlopLength = (int) (20 * displayMetrics.density);
@@ -147,6 +145,7 @@ public class SwipeCloseLayout extends FrameLayout {
         addView(mContent);
     }
 
+    @SuppressWarnings("unused")
     public boolean isSwipeEnabled() {
         return mSwipeEnabled;
     }
@@ -179,8 +178,8 @@ public class SwipeCloseLayout extends FrameLayout {
      * 是否需要拦截
      */
     private boolean shouldIntercept(@NonNull MotionEvent ev) {
-        if (!isTouchOnSpecialView(ev)) {
-            if (mSwipeEnabled && !mCanSwipe && !mIgnoreSwipe) {
+        if (mSwipeEnabled && !isTouchOnSpecialView(ev)) {
+            if (!mCanSwipe && !mIgnoreSwipe) {
                 switch (ev.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         mDownX = ev.getX();
@@ -281,6 +280,10 @@ public class SwipeCloseLayout extends FrameLayout {
         invalidate();
     }
 
+    /**
+     * 动画是否结束
+     */
+    @SuppressWarnings("unused")
     public boolean isAnimationFinished() {
         return mIsAnimationFinished;
     }
@@ -340,12 +343,11 @@ public class SwipeCloseLayout extends FrameLayout {
     }
 
     /**
-     * 覆盖此方法 可重写最红关闭效果
+     * 覆盖此方法 可重写最终关闭效果
      */
     public void backImp() {
         if (mFragment != null) {
-            if (mActivity.getSupportFragmentManager().popBackStackImmediate()) {
-            } else if (!mActivity.isFinishing()) {
+            if (!mActivity.getSupportFragmentManager().popBackStackImmediate() && !mActivity.isFinishing()) {
                 mActivity.finish();
                 mActivity.overridePendingTransition(0, 0);//取消默认关闭动画
             }
@@ -370,23 +372,6 @@ public class SwipeCloseLayout extends FrameLayout {
             } else {
                 animateBack(true);
             }
-        }
-    }
-
-    /**
-     * 添加特殊view 防止错划
-     */
-    public void addSpecialView(View view) {
-        if (view == null) return;
-        specialView.put(view.hashCode(), view);
-    }
-
-    /**
-     * 移出特殊view
-     */
-    public void removeSpecialView(View view) {
-        if (view != null && specialView.containsKey(view.hashCode())) {
-            specialView.remove(view.hashCode());
         }
     }
 
@@ -497,6 +482,11 @@ public class SwipeCloseLayout extends FrameLayout {
      * 关闭回调
      */
     public interface SwipeFinishCallBack {
+        /**
+         * @param activity 当前Activity
+         * @param fragment 当前Fragment
+         * @return 是否继续处理  false 继续处理  true 不继续
+         */
         boolean onSwipeFinish(Activity activity, Fragment fragment);
     }
 

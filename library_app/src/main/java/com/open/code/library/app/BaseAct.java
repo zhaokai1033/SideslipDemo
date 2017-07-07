@@ -126,15 +126,6 @@ public abstract class BaseAct extends AppCompatActivity implements SwipeCloseLay
         }
     }
 
-    /**
-     * 增加特殊View 防止滑动冲突
-     */
-    public void addSwipeSpecialView(View view) {
-        if (mSwipeBack != null) {
-            mSwipeBack.addSpecialView(view);
-        }
-    }
-
     public SwipeCloseLayout getSwipeClose() {
         return mSwipeBack;
     }
