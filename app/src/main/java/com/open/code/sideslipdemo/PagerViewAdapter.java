@@ -16,8 +16,14 @@ import android.widget.TextView;
 
 public class PagerViewAdapter extends PagerAdapter {
 
+    private int[] bgColors;
+
     public PagerViewAdapter() {
         super();
+        bgColors = new int[getCount()];
+        for (int i = 0; i < bgColors.length; i++) {
+            bgColors[i] = Util.randomColor();
+        }
     }
 
     @Override
@@ -38,7 +44,7 @@ public class PagerViewAdapter extends PagerAdapter {
         textView.setText("Pager_" + position);
         textView.setGravity(Gravity.CENTER);
         textView.setTextSize(56);
-        textView.setBackgroundColor(Util.randomColor());
+        textView.setBackgroundColor(bgColors[position]);
         textView.setClickable(true);
         container.addView(textView);
         return textView;
