@@ -3,7 +3,7 @@
 
 - 演示
 
-  ![https://github.com/zhaokai1033/SideslipDemo/blob/master/show.gif]()
+  ![image](https://github.com/zhaokai1033/SideslipDemo/blob/master/show.gif)
 
 - Fragment接入
 
